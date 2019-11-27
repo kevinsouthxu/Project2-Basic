@@ -36,7 +36,7 @@ ConstantExp::ConstantExp(int val){
     this->value=val;
 }
 
-int ConstantExp::eval(EvaluationContext &context){
+int ConstantExp::eval(EvaluationContext *context){
     return this->value;
 }
 
@@ -70,9 +70,9 @@ QString IdentifierExp::getIdentifierName(){
     return this->name;
 }
 
-int IdentifierExp::eval(EvaluationContext &context){
-    if(!context.isDefined(name)) throw(name + " is undefined");
-    return context.getValue(name);
+int IdentifierExp::eval(EvaluationContext *context){
+    if(!context->isDefined(name)) throw(name + " is undefined.");
+    return context->getValue(name);
 }
 //
 
@@ -107,10 +107,10 @@ Expression  *CompoundExp::getRHS(){
     return this->rhs;
 }
 
-int CompoundExp::eval(EvaluationContext &context){
+int CompoundExp::eval(EvaluationContext *context){
     int right = rhs->eval(context);
     if(op == "=") {
-        context.setValue(lhs->getIdentiferName(),right);
+        context->setValue(lhs->getIdentiferName(),right);
         return right;
     }
     int left = lhs->eval(context);

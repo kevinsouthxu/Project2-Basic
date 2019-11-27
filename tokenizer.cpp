@@ -195,7 +195,7 @@ void tokenizer::Statetype()
          try{
          this->stm->gettoken(tmp->next);
           }
-         catch (QString error)
+         catch (const char *error)
           {
               print("Line: "+QString::number(this->stm->Line())+"\t"+error);
           }
@@ -205,16 +205,69 @@ void tokenizer::Statetype()
 
 void tokenizer::RUN()
 {
+    token *tmp=new token;
+    tmp=head->next;   //此时tmp指向的是存着命令的地方
+    if(this->St==REM)
+    {
+        return;
+    }
     if(this->St==LET)
     {
+      this->stm->getContext(this->eva);
+        try{
+      this->stm->CalculateEXP();
+        }
+        catch (const char *error)
+        {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error);
+            return;
+        }
 
     }
     if(this->St==PRINT)
     {
-
+      this->stm->getContext(this->eva);
+        try{
+      this->stm->CalculateEXP();
+        }
+        catch (const char *error)
+        {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error);
+            return;
+        }
+      print(QString::number(this->stm->returnPRINT()));
     }
     if(this->St==INPUT)
     {
-        eva->setValue(this->stm->returnINPUT(),0);///////
+        this->stm->getContext(this->eva);
+        //eva->setValue(this->stm->returnINPUT(),0);//
     }
+    if(this->St==GOTO)
+    {
+      emit GOTO_Line(this->stm->returnGOTO());
+        return;
+    }
+    if(this->St==IF)
+    {
+        this->stm->getContext(this->eva);
+        bool whether=false;
+        this->stm->CalculateEXP();
+        try {
+            whether=this->stm->returnIF_bool();
+        } catch (const char *error) {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error);
+            return;
+        }
+        if(whether)
+            this->stm->Calculate_IF_EXP();//THEN后面还可以跟GOTO符号。
+        return;
+    }
+    if(this->St==END)
+    {
+      return;
+    }
+}
+int tokenizer::Current_Line_index()
+{
+    return this->stm->Line();
 }

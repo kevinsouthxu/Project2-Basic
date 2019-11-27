@@ -14,6 +14,7 @@ void ListBuffer::clear()
    head->number=-1;
    head->next=rear;
    rear->number=std::numeric_limits<int>::max();
+   toknizer_map.clear();
 }
 void ListBuffer::deleteLine(int line_idx)
 {
@@ -98,9 +99,38 @@ void ListBuffer::printtok(QString l)
 {
     emit print(l);
 }
+void ListBuffer::get_line_index(int i)
+{
+    this->Current_Line_index=i;
+    int temp=currentline->tok->Current_Line_index();
+    if(temp==this->Current_Line_index)
+    {
+        print("Line:"+QString::number(temp)+"\t"+"error: CANT address this address.");
+        CAN_CONTINUE_RUN=false;
+        return;
+    }
+    currentline=head->next;
+    Listrec *temp_node=new Listrec;
+    temp_node=head;
+    while(currentline!=rear)
+    {
+        if(Current_Line_index==currentline->tok->Current_Line_index())
+            break;
+        currentline=currentline->next;
+        temp_node=temp_node->next;
+    }
+    if(currentline==rear)
+    {
+         print("Line:"+QString::number(temp)+"\t"+"error: There is no Linenumber behind the GOTO command.");
+         CAN_CONTINUE_RUN=false;
+    }
+    currentline=temp_node;
+    return;
+}
 void ListBuffer::runmode()
 {
     Eva=new EvaluationContext;
+    toknizer_map.clear();
     Listrec *tmp=new Listrec;
     tmp=head->next;
     while(tmp!=rear)
@@ -108,19 +138,35 @@ void ListBuffer::runmode()
         tmp->tok= new tokenizer;
         tmp->tok->getline(tmp->list);
         connect(tmp->tok,SIGNAL(print(QString)),this,SLOT(printtok(QString)));
+        connect(tmp->tok,SIGNAL(GOTO_Line(int)),this,SLOT(get_line_index(int)));
         //tmp->tok->showtokens();
         tmp->tok->getContext(Eva);
         tmp->tok->Statetype();
+        toknizer_map.insert(tmp->tok->Current_Line_index(),tmp->tok);//行数与对应tok
 
-      tmp=tmp->next;
+        tmp=tmp->next;
     }
 
-    tmp=head->next;
-    while(tmp!=rear&&tmp->tok->St!=END)
+    CAN_CONTINUE_RUN=true;
+    currentline=head->next;
+
+    while(currentline!=rear&&currentline->tok->St!=END)
     {
-     tmp->tok->RUN();
-     tmp=tmp->next;
+        Current_Line_index=currentline->tok->Current_Line_index();
+        currentline->tok->RUN();
+
+        if(!CAN_CONTINUE_RUN)
+            break;
+        currentline=currentline->next;
     }
+    currentline=head->next;
+    while(currentline!=rear)
+    {
+        disconnect(currentline->tok,SIGNAL(print(QString)),this,SLOT(printtok(QString)));
+        disconnect(currentline->tok,SIGNAL(GOTO_Line(int )),this,SLOT(get_line_index(int)));
+        currentline=currentline->next;
+    }
+    toknizer_map.clear();
 }
 ListBuffer::~ListBuffer()
 {
@@ -160,7 +206,10 @@ void Editor::run()
         cmd=line.trimmed();
         if (cmd == "Q")
             return;
-            dispatchCmd(cmd);
+        try {
+             dispatchCmd(cmd);
+        } catch (const char *e) {
+        }
 
 
 }

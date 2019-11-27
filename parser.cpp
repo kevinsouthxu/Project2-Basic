@@ -15,6 +15,9 @@ Parser::~Parser(){
     calculator.clear();
     pre.clear();
 }
+exp* Parser::returnexp(){
+    return this->head;
+}
 void Parser::Build_Tree(token *hd){
     exp *temp;
     int cons; //表达式的数字
@@ -132,39 +135,83 @@ void Parser::preread(exp *tmp){
 void Parser::postread(){
     helper.clear();
     pre.clear();
-    preread(head);
+    postread(head);
 }
 void Parser::postread(exp *tmp){
     if(tmp==nullptr) return;
-    preread(tmp->Left);
-    preread(tmp->Right);
+    postread(tmp->Left);
+    postread(tmp->Right);
     if(tmp->ex->type()==CONSTANT) {pre.append(tmp->ex->toString());helper.enqueue(tmp->ex);}
     if(tmp->ex->type()==IDENTIFIER) {pre.append(tmp->ex->toString());helper.enqueue(tmp->ex);}
     if(tmp->ex->type()==COMPOUND) {pre.append(tmp->ex->toString());helper.enqueue(tmp->ex);}
 }
-void Parser::Calculate(EvaluationContext *context,exp *hd){
+int Parser::Calculate(EvaluationContext *context,exp *hd){
     helper.clear();
     calculator.clear();
-    this->postread(hd);
+    this->postread(hd);//后缀放在helper队列里了
     while(!helper.empty())
     {
-        if(helper.front()->type()==COMPOUND)
+        if(helper.front()->type()==IDENTIFIER||helper.front()->type()==CONSTANT)
         {
             calculator.push(helper.front());
             helper.pop_front();
+            continue;
         }
-        if(helper.front->type()==IDENTIFIER||helper.front->type()==CONSTANT)
+        if(helper.front()->type()==COMPOUND)//还未做好异常处理
         {
-            if(calculator.top()->type()==COMPOUND)
+            Expression *Cal_exp1=calculator.pop();
+            Expression *Cal_exp2=calculator.pop();
+            QString temp_op=helper.front()->toString();
+            if (temp_op=="+")
             {
-                calculator.push(helper.front());
+                int calculate_result=Cal_exp2->eval(context)+Cal_exp1->eval(context);
+                Expression *tmp=new ConstantExp(calculate_result);
+                calculator.push(tmp);
                 helper.pop_front();
+                continue;
             }
-            else
+            if (temp_op=="-")
             {
-
+                int calculate_result=Cal_exp2->eval(context)-Cal_exp1->eval(context);
+                Expression *tmp=new ConstantExp(calculate_result);
+                calculator.push(tmp);
+                helper.pop_front();
+                continue;
             }
-        }
+            if (temp_op=="*")
+            {
+                int calculate_result=Cal_exp2->eval(context)*Cal_exp1->eval(context);
+                Expression *tmp=new ConstantExp(calculate_result);
+                calculator.push(tmp);
+                helper.pop_front();
+                continue;
+            }
+            if (temp_op=="/")
+            {
+                int calculate_result=Cal_exp2->eval(context)/Cal_exp1->eval(context);
+                Expression *tmp=new ConstantExp(calculate_result);
+                calculator.push(tmp);
+                helper.pop_front();
+                continue;
+            }
+            if (temp_op=="=")
+            {
+                if(Cal_exp2->type()!=IDENTIFIER)
+                    throw "Unvalid Expression.";
+                context->setValue(Cal_exp2->toString(),Cal_exp1->eval(context));
+                calculator.push(Cal_exp2);
+                helper.pop_front();
+                continue;
+            }
 
+        }
     }
+    if(calculator.front()->type()==IDENTIFIER||calculator.front()->type()==CONSTANT)
+    {
+        if(calculator.empty())
+            throw "UNVALID Expression.";
+        Expression *tempexp=calculator.pop();
+            return tempexp->eval(context);
+    }
+
 }

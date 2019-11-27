@@ -19,6 +19,8 @@ public:
     void RUN();
 
     statementtype St;
+
+    int Current_Line_index();
 private:
    token *head,*currenttoken,*rear;
 
@@ -28,6 +30,7 @@ private:
    EvaluationContext *eva;
 signals:
    void print(QString l);
+   void GOTO_Line(int n);
 public slots:
    void getline(const QString l);
    void getContext(EvaluationContext *eva);

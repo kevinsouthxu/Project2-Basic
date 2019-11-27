@@ -16,7 +16,7 @@ public:
 
    Expression();
    virtual ~Expression();
-   virtual int eval(EvaluationContext & context) = 0;
+   virtual int eval(EvaluationContext * context) = 0;
    virtual QString toString() = 0;
    virtual ExpressionType type() = 0;
 
@@ -35,7 +35,7 @@ public:
 
     ConstantExp(int val);
 
-    virtual int eval(EvaluationContext & context);
+    virtual int eval(EvaluationContext * context);
     virtual QString toString();
     virtual ExpressionType type();
 
@@ -52,7 +52,7 @@ public:
 
     IdentifierExp(QString name);
 
-    virtual int eval(EvaluationContext & context);
+    virtual int eval(EvaluationContext * context);
     virtual QString toString();
     virtual ExpressionType type();
 
@@ -69,7 +69,7 @@ public:
     CompoundExp(QString op, Expression *lhs=nullptr, Expression *rhs=nullptr);
     virtual ~CompoundExp();
 
-    virtual int eval(EvaluationContext & context);
+    virtual int eval(EvaluationContext * context);
     virtual QString toString();
     virtual ExpressionType type();
 

@@ -24,8 +24,8 @@ public:
     QString pre;
     void preread();
     void postread();
-    exp* returnexp(){return head;};
-    void Calculate(EvaluationContext *context,exp *hd);
+    exp* returnexp();
+    int Calculate(EvaluationContext *context,exp *hd);
 
 private:
     void preread(exp *tmp);
