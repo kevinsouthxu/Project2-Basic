@@ -1,4 +1,5 @@
 #include "exp.h"
+#include "text_error.h"
 
 Expression::Expression(){
 }
@@ -16,19 +17,24 @@ QString Expression::toString(){
 }
 */
 int Expression::getConstantValue(){
-    throw "error: The Value is nonexistent.";
+    text_error error("The Value is nonexistent.");
+    throw error;
 }
 QString Expression::getIdentiferName(){
-    throw "error: The Identifier is nonexistent.";
+    text_error error("The Identifier is nonexistent.");
+    throw error;
 }
 QString Expression::getOperator(){
-    throw "error: The Operator is nonexistent.";
+    text_error error("The Operator is nonexistent.");
+    throw error;
 }
 Expression *Expression::getLHS(){
-    throw "error: The LHS is nonexistent.";
+    text_error error("The LHS is nonexistent.");
+    throw error;;
 }
 Expression *Expression::getRHS(){
-    throw "error: The RHS is nonexistent.";
+    text_error error("The RHS is nonexistent.");
+    throw error;
 }
 //
 
@@ -36,7 +42,7 @@ ConstantExp::ConstantExp(int val){
     this->value=val;
 }
 
-int ConstantExp::eval(EvaluationContext &context){
+int ConstantExp::eval(EvaluationContext *context){
     return this->value;
 }
 
@@ -70,9 +76,13 @@ QString IdentifierExp::getIdentifierName(){
     return this->name;
 }
 
-int IdentifierExp::eval(EvaluationContext &context){
-    if(!context.isDefined(name)) throw(name + " is undefined");
-    return context.getValue(name);
+int IdentifierExp::eval(EvaluationContext *context){
+    if(!context->isDefined(name))
+    {
+        text_error error(name+" is undefined.");
+        throw error;
+     }
+    return context->getValue(name);
 }
 //
 
@@ -107,10 +117,10 @@ Expression  *CompoundExp::getRHS(){
     return this->rhs;
 }
 
-int CompoundExp::eval(EvaluationContext &context){
+int CompoundExp::eval(EvaluationContext *context){
     int right = rhs->eval(context);
     if(op == "=") {
-        context.setValue(lhs->getIdentiferName(),right);
+        context->setValue(lhs->getIdentiferName(),right);
         return right;
     }
     int left = lhs->eval(context);
@@ -118,10 +128,14 @@ int CompoundExp::eval(EvaluationContext &context){
     if(op == "-") return left - right;
     if(op == "*") return left * right;
     if(op == "/") {
-        if(right == 0) throw("Division by 0");
+        if(right == 0) {
+            text_error error("Division by 0");
+            throw error;
+        }
         return left / right;
     }
-    throw("Illegal operator in expression");
+    text_error error("Illegal operator in expression");
+    throw error;
     return 0;
 }
 

@@ -1,5 +1,7 @@
 #include "tokenizer.h"
 #include "parser.h"
+#include <QChar>
+#include "text_error.h"
 tokenizer::tokenizer()
 {
     this->clear();
@@ -106,10 +108,13 @@ void tokenizer::IntoToken()
            {
                 if(currenttoken->tokens.length()!=0)
                 {
+                   if(currenttoken->tokens!="*"||this->line[i]!='*')
+                   {
                     tmp=new token;
                     tmp->next=currenttoken->next;
                     currenttoken->next=tmp;
                     currenttoken=currenttoken->next;
+                   }
 
                 }
                 currenttoken->tokens.append(this->line[i]);
@@ -139,7 +144,12 @@ void tokenizer::Statetype()
         this->St=LET;
         this->stm=new LETstatement(head->tokens.toInt());
         this->stm->gettoken(tmp->next);
-        QString t(this->stm->parseEXP());
+         try {
+             QString t(this->stm->parseEXP());
+         } catch (text_error error) {
+          print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+          emit this->error();
+         }
          return;
      }
      if(tmp->tokens=="PRINT")  //捕捉异常与表达式有关
@@ -157,9 +167,10 @@ void tokenizer::Statetype()
         try{
         this->stm->gettoken(tmp->next);
          }
-        catch (const char *error)
+        catch (text_error error)
          {
-             print("Line: "+QString::number(this->stm->Line())+"\t"+error);
+             print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+             emit this->error();
          }
          return;
      }
@@ -170,9 +181,10 @@ void tokenizer::Statetype()
          try{
          this->stm->gettoken(tmp->next);
           }
-         catch (const char *error)
+         catch (text_error error)
           {
-             print("Line: "+QString::number(this->stm->Line())+"\t"+error);
+             print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+             emit this->error();
           }
          return;
      }
@@ -181,10 +193,25 @@ void tokenizer::Statetype()
         this->St=IF;
         this->stm=new IFstatement(head->tokens.toInt());
         this->stm->gettoken(tmp->next);
-        this->stm->parseIF_EXP();
+         try {
+             this->stm->parseIF_EXP();
+         } catch (text_error error) {
+             print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+             emit this->error();
+             return;
+         }
         QString t(this->stm->returnIF());
          if(stm->have_THEN())
-          QString t1(this->stm->parseEXP());
+         {
+             try
+             {
+                 QString t1(this->stm->parseEXP());
+             } catch (text_error error){
+                 print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+                 emit this->error();
+             }
+
+         }
 
          return;
      }
@@ -195,26 +222,119 @@ void tokenizer::Statetype()
          try{
          this->stm->gettoken(tmp->next);
           }
-         catch (QString error)
+         catch (text_error error)
           {
-              print("Line: "+QString::number(this->stm->Line())+"\t"+error);
+              print("Line: "+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+              emit this->error();
           }
          return;
      }
+     text_error error("exist UNKNOWN statements.");
+     print(error.get_error_information());
+     emit this->error();
 }
 
 void tokenizer::RUN()
 {
+    token *tmp=new token;
+    tmp=head->next;   //此时tmp指向的是存着命令的地方
+    if(this->St==REM)
+    {
+        return;
+    }
     if(this->St==LET)
     {
+      this->stm->getContext(this->eva);
+        try{
+      this->stm->CalculateEXP();
+        }
+        catch (text_error error)
+        {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+            emit this->error();
+            return;
+        }
+        return;
 
     }
     if(this->St==PRINT)
     {
-
+      this->stm->getContext(this->eva);
+        try{
+      this->stm->CalculateEXP();
+        }
+        catch (text_error error)
+        {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+            emit this->error();
+            return;
+        }
+      print(QString::number(this->stm->returnPRINT()));
+      return;
     }
     if(this->St==INPUT)
     {
-        eva->setValue(this->stm->returnINPUT(),0);///////
+        this->stm->getContext(this->eva);
+        emit INPUT_Line(1);
+        return;
     }
+    if(this->St==GOTO)
+    {
+      emit GOTO_Line(this->stm->returnGOTO());
+        return;
+    }
+    if(this->St==IF)
+    {
+        this->stm->getContext(this->eva);
+        bool whether=false;
+        try {
+            this->stm->CalculateEXP();
+        } catch (text_error error) {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+            emit this->error();
+            return;
+        }
+        try {
+            whether=this->stm->returnIF_bool();
+        } catch (text_error error) {
+            print("Line:"+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+            emit this->error();
+            return;
+        }
+        if(whether)
+        {
+            QString THEN_COMMAND=this->stm->returnIF();
+            if(THEN_COMMAND=="GOTO")
+            {emit GOTO_Line(this->stm->returnGOTO());
+                return;
+            }
+            if(THEN_COMMAND=="LET")
+            {
+                print("Line:"+QString::number(this->stm->Line())+"\t"+
+                      "You only allowed to write the expression directly after THEN");
+                emit this->error();
+                return;
+            }
+            try {
+                this->stm->Calculate_IF_EXP();//THEN后面还可以跟GOTO符号。
+            } catch (text_error error) {
+                print("Line:"+QString::number(this->stm->Line())+"\t"+error.get_error_information());
+                emit this->error();
+                return;
+            }
+        }
+
+        return;
+    }
+    if(this->St==END)
+    {
+      return;
+    }
+    text_error error("exist UNKNOWN statements.");
+    print(error.get_error_information());
+    emit this->error();
+}
+int tokenizer::Current_Line_index()
+{
+    return this->stm->Line();
 }

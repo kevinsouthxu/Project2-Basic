@@ -23,13 +23,23 @@ public:
     statement();
     virtual ~statement();
     virtual void gettoken(const token *hd);
+    virtual void getContext(EvaluationContext *con);
     virtual statementtype type()=0;
     virtual int Line()=0;
+
     virtual bool have_THEN();
+    virtual int IF_Judge_Condition();
+
     virtual QString parseEXP();
-    virtual QString returnINPUT();
+    virtual void CalculateEXP();
+    virtual void Calculate_IF_EXP();
     virtual void parseIF_EXP();
+
+    virtual bool returnIF_bool();
+    virtual QString returnINPUT();
     virtual QString returnIF();
+    virtual int returnGOTO();
+    virtual int returnPRINT();
 
 private:
 
@@ -56,7 +66,8 @@ public:
     virtual statementtype type();
     virtual int Line();
     virtual QString parseEXP();
-
+    virtual void CalculateEXP();
+    virtual void getContext(EvaluationContext *con);
 
 private:
     int linenumber;
@@ -64,6 +75,7 @@ private:
     QString preOrder;
 
     exp *head_LET;
+    EvaluationContext *context;
 };
 
 class PRINTstatement:public statement{ //PRINT后应当只有一个表达式
@@ -74,6 +86,9 @@ public:
     virtual statementtype type();
     virtual int Line();
     virtual QString parseEXP();
+    virtual void CalculateEXP();
+    virtual void getContext(EvaluationContext *con);
+    virtual int returnPRINT();
 
 private:
     int linenumber;
@@ -81,6 +96,9 @@ private:
     QString preOrder;
 
     exp *head_PRINT;
+    EvaluationContext *context;
+
+    int PRINT_Number;
 };
 
 class INPUTstatement:public statement{
@@ -91,11 +109,13 @@ public:
     virtual int Line();
     virtual void gettoken(const token *hd);
     virtual QString returnINPUT(){return INPU;};
+    virtual void getContext(EvaluationContext *con);
 
 private:
     int linenumber;
     QString INPU;
 
+    EvaluationContext *context;
 };
 
 class GOTOstatement:public statement{    //GOTO后面可能是个表达式
@@ -104,6 +124,7 @@ public:
     virtual ~GOTOstatement();
     virtual statementtype type();
     virtual int Line();
+    virtual int returnGOTO();
     virtual void gettoken(const token *hd);
 
 private:
@@ -118,10 +139,20 @@ public:
     virtual statementtype type();
     virtual int Line();
     virtual void gettoken(const token *hd);
+
     virtual bool have_THEN();
+    virtual bool returnIF_bool();
+
     virtual QString parseEXP();
+    virtual void CalculateEXP();
+    virtual void Calculate_IF_EXP();
     virtual void parseIF_EXP();
-    virtual QString returnIF();
+
+    virtual QString returnIF();//返回THEN之后的第一个tok
+    virtual int returnGOTO();
+
+    virtual void getContext(EvaluationContext *con);
+    virtual int IF_Judge_Condition();//1代表=，2代表>,3代表<，4代表>=，5代表<=,0代表不成功。
 
 private:
     int linenumber;
@@ -137,6 +168,12 @@ private:
     exp *head1_IF;
     exp *head2_IF;
     exp *head3_IF;
+
+    EvaluationContext *con;
+
+    int t1_1;
+    int t1_2;
+    int t;
 };
 
 class ENDstatement:public statement{

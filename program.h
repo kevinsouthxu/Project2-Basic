@@ -4,6 +4,7 @@
 #include <QString>
 #include <QObject>
 #include <QWidget>
+#include <QMap>
 
 #include "tokenizer.h"
 #include "evalstate.h"
@@ -20,8 +21,16 @@ private:
     };
     Listrec *head,*currentline,*rear;
     EvaluationContext *Eva;
+
+    int Current_Line_index;
+
+    bool CAN_CONTINUE_RUN;
 public slots:
     void printtok(QString);
+    void get_line_index(int);
+    void get_input_signal(int);
+    void get_input_value(QString);
+    void error_situation();
 signals:
     void perror(QString) const;
     void print(QString) const;
@@ -36,6 +45,8 @@ public:
     void deleteLine(int line_idx);
     void insertLine(int line_idx, const QString &text);
     void runmode();
+
+    bool PAUSE;
 };
 
 class Editor:public QWidget

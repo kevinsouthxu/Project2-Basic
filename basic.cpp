@@ -75,8 +75,8 @@ void Console::keyPressEvent(QKeyEvent *event)
         cursor.movePosition(QTextCursor::End);
         cursor.select(QTextCursor::LineUnderCursor);
         QString lastLine = cursor.selectedText();
-        newLineWritten(lastLine);
         this->cleard();
+        newLineWritten(lastLine);
     }
     QTextEdit::keyPressEvent(event);
 }

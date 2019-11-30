@@ -1,5 +1,7 @@
 #include "statement.h"
 #include "Parser.h"
+#include "text_error.h"
+#include <QChar>
 statement::statement(){
 
 }
@@ -13,16 +15,48 @@ bool statement::have_THEN(){
     throw "error: CANT get statement.";
 }
 QString statement::parseEXP(){
-    throw "error: CANT get statement.";
+    text_error error("CAN'T get statement.");
+    throw error;
 }
 QString statement::returnINPUT(){
-    throw "error: CANT get statement.";
+    text_error error("CAN'T get statement.");
+    throw error;
 }
 void statement::parseIF_EXP(){
-    throw "error: CANT get statement.";
+    text_error error("CAN'T get statement.");
+    throw error;
 }
 QString statement::returnIF(){
-    throw "error: CANT get statement.";
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+void statement::getContext(EvaluationContext *con){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+void statement::CalculateEXP(){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+void statement::Calculate_IF_EXP(){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+int statement::returnPRINT(){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+int statement::returnGOTO(){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+int statement::IF_Judge_Condition(){
+    text_error error("CAN'T get statement.");
+    throw error;
+}
+bool statement::returnIF_bool(){
+    text_error error("CAN'T get statement.");
+    throw error;
 }
 
 
@@ -95,14 +129,22 @@ QString LETstatement::parseEXP(){
     try{
     par->Build_Tree(head->next);
     }
-    catch(QString error)
+    catch(text_error e)
     {
-        return error;
+        throw(e);
     }
-    par->preread();
+    this->head_LET=par->returnexp();
+    par->postread();
     preOrder=par->pre;
     this->head_LET=par->returnexp();
     return par->pre;
+}
+void LETstatement::getContext(EvaluationContext *con){
+    this->context=con;
+}
+void LETstatement::CalculateEXP(){
+    Parser *par=new Parser;
+    int t=par->Calculate(this->context,this->head_LET);
 }
 
 
@@ -113,6 +155,7 @@ PRINTstatement::PRINTstatement(int line){
     currenttok=new token;
     head->next=rear;
     rear->tokens="\0";
+    PRINT_Number=0;
 }
 PRINTstatement::~PRINTstatement(){
 
@@ -139,18 +182,11 @@ QString PRINTstatement::parseEXP(){
     try{
     par->Build_Tree(head->next);
     }
-    catch(const char *error)
+    catch(text_error error)
     {
-       QString temp;
-       token *tmp=new token;
-       tmp=head->next;
-       while(tmp->tokens!="\0")
-       {
-           temp.append(tmp->tokens);
-           tmp=tmp->next;
-       }
-       return temp;
+       throw(error);
     }
+    this->head_PRINT=par->returnexp();
     par->preread();
     preOrder=par->pre;
     this->head_PRINT=par->returnexp();
@@ -158,6 +194,20 @@ QString PRINTstatement::parseEXP(){
 }
 int PRINTstatement::Line(){
     return linenumber;
+}
+void PRINTstatement::getContext(EvaluationContext *con){
+    this->context=con;
+}
+void PRINTstatement::CalculateEXP(){
+    Parser *par=new Parser;
+    try {
+        PRINT_Number=par->Calculate(this->context,this->head_PRINT);
+    } catch (text_error error) {
+        throw(error);
+    }
+}
+int PRINTstatement::returnPRINT(){
+    return this->PRINT_Number;
 }
 
 
@@ -177,14 +227,33 @@ void INPUTstatement::gettoken(const token *hd){
     while(hd->tokens=="\0")
         hd=hd->next;
     if(hd->next->tokens!="\0"||(hd->tokens.at(0)>='0'&&hd->tokens.at(0)<='9'))          //按理来说hd的next就是rear,rear存的是\0
-        throw "The INPUT should be the value of a variable.";
+       {
+        text_error error("The INPUT should be a valid variable.");
+        throw error;
+    }
+    for(int i=0;i<hd->tokens.length();i++)
+    {
+        if(!(hd->tokens.at(i)>='0'&&hd->tokens.at(i)<='9')&&
+           !((hd->tokens.at(i)>='a'&&hd->tokens.at(i)<='z'))&&
+           !(hd->tokens.at(i)>='A'&&hd->tokens.at(i)<='Z')&&
+           (hd->tokens.at(i)!='_'))
+        {
+            text_error error("The INPUT should be a valid variable.");
+            throw error;
+        }
+
+    }
     INPU=hd->tokens;
     return;
+}
+void INPUTstatement::getContext(EvaluationContext *con){
+    this->context=con;
 }
 
 
 GOTOstatement::GOTOstatement(int line){
     this->linenumber=line;
+    gotoline=0;
 }
 GOTOstatement::~GOTOstatement(){
 
@@ -198,11 +267,20 @@ int GOTOstatement::Line(){
 void GOTOstatement::gettoken(const token *hd){
     bool ok;
     if(hd->next->tokens!="\0")          //按理来说hd的next就是rear,rear存的是\0
-        throw "The GOTO should be a integer.";
+    {
+       text_error error("The GOTO should be a integer.");
+        throw error;
+    }
     gotoline=hd->tokens.toInt(&ok);
     if(!ok)
-        throw "The GOTO should be a integer.";
+    {
+       text_error error("The GOTO should be a integer.");
+        throw error;
+    }
     return;
+}
+int GOTOstatement::returnGOTO(){
+    return gotoline;
 }
 
 
@@ -232,6 +310,10 @@ IFstatement::IFstatement(int line){
     currenttok2=new token;
     head2->next=rear2;
     rear2->tokens="\0";
+
+    t1_1=0;
+    t1_2=0;
+    t=0;
 }
 IFstatement::~IFstatement(){
 
@@ -278,21 +360,22 @@ bool IFstatement::have_THEN(){
 }
 QString IFstatement::parseEXP(){
     Parser *par=new Parser;
-    if(head2->next=="THEN")
+    if(head2->next->tokens=="THEN")
     {
         bool ok;
         int test=head2->next->next->tokens.toInt(&ok);
         if(ok)
-            return "GOTO"+head2->next->next;
-        else
-            throw "The GOTO should be a integer.";
+        {
+            text_error error("The GOTO should be a integer.");
+             throw error;
+        }
     }
     try{
     par->Build_Tree(head2->next);
     }
-    catch(const char *error)
+    catch(text_error error)
     {
-        return error;
+        throw error;
     }
     par->preread();
     preOrder=par->pre;
@@ -330,11 +413,11 @@ void IFstatement::parseIF_EXP(){
     try{
     par->Build_Tree(head1_1->next);
     }
-    catch(const char *error)
+    catch(text_error error)
     {
-        preOrder1_1=*error;
+        throw error;
     }
-    par->preread();
+    par->postread();
     preOrder1_1=par->pre;
     this->head2_IF=par->returnexp();
 
@@ -342,18 +425,137 @@ void IFstatement::parseIF_EXP(){
     try{
     par->Build_Tree(head1_2->next);
     }
-    catch(const char *error)
+    catch(text_error error)
     {
-         preOrder1_2=*error;
+         throw error;
     }
-    par->preread();
+    par->postread();
     preOrder1_2=par->pre;
     this->head3_IF=par->returnexp();
 }
 QString IFstatement::returnIF(){
-    return preOrder1_1+"\t"+preOrder1_2;
+    return head2->next->tokens;
 }
-//
+int IFstatement::returnGOTO(){
+    bool ok;
+    int a=head2->next->next->tokens.toInt(&ok);
+    if(!ok)
+        throw("The GOTO should be a integer.");
+    return a;
+
+}
+void IFstatement::getContext(EvaluationContext *con){
+    this->con=con;
+}
+void IFstatement::CalculateEXP(){
+    Parser *par=new Parser;
+    try {
+        t1_1=par->Calculate(this->con,this->head2_IF);
+    } catch (text_error error) {
+        throw error;
+    }
+    par=new Parser;
+    try {
+        t1_2=par->Calculate(this->con,this->head3_IF);
+    } catch (text_error error) {
+        throw error;
+    }
+}
+void IFstatement::Calculate_IF_EXP(){
+    Parser *par=new Parser;
+    t=par->Calculate(this->con,this->head1_IF);
+}
+int IFstatement::IF_Judge_Condition(){
+    currenttok1=head1->next;
+    int count1=0;
+    int count2=0;
+    while(currenttok1!=rear1)
+    {
+        if(currenttok1->tokens==">"||currenttok1->tokens=="<")
+            count1++;
+        if(currenttok1->tokens=="=")
+            count2++;
+        currenttok1=currenttok1->next;
+    }
+    if((count1>1||count2>1)||(count1==0&&count2==0))
+        return 0;
+    if(count1==1&&count2==1)
+    {
+        currenttok1=head1->next;
+        while(currenttok1!=rear1&&currenttok1->tokens!=">"&&currenttok1->tokens!="<")
+        {
+            currenttok1=currenttok1->next;
+        }
+        currenttok1=currenttok1->next;
+        if(currenttok1->tokens!="=")
+        {
+            text_error error("The IF condition's two exps shouldn't have equal operator.");
+            throw error;
+        }
+    }
+    currenttok1=head1->next;
+    while(currenttok1!=rear1&&currenttok1->tokens!=">"&&currenttok1->tokens!="<"&&currenttok1->tokens!="=")
+    {
+        currenttok1=currenttok1->next;
+    }
+    if(currenttok1->tokens=="=")
+        return 1;
+    if(currenttok1->tokens==">"||currenttok1->tokens=="<")
+    {
+        if(currenttok1->next->tokens=="=")
+        {
+            if(currenttok1->tokens==">")
+                return 4;
+            if(currenttok1->tokens=="<")
+                return 5;
+        }
+        if(currenttok1->tokens==">")
+            return 2;
+        if(currenttok1->tokens=="<")
+            return 3;
+    }
+}
+bool IFstatement::returnIF_bool(){
+    int IF_type=this->IF_Judge_Condition();
+    if(IF_type==0)
+    {
+        text_error error("UNVALID IF grammer.");
+        throw error;
+        return false;
+    }
+    if(IF_type==1)
+    {
+        if(this->t1_1==this->t1_2)
+            return true;
+        return false;
+    }
+    if(IF_type==2)
+    {
+        if(this->t1_1>this->t1_2)
+            return true;
+        return false;
+    }
+    if(IF_type==3)
+    {
+        if(this->t1_1<this->t1_2)
+            return true;
+        return false;
+    }
+    if(IF_type==4)
+    {
+        if(this->t1_1>=this->t1_2)
+            return true;
+        return false;
+    }
+    if(IF_type==5)
+    {
+        if(this->t1_1<=this->t1_2)
+            return true;
+        return false;
+    }
+    return false;
+}
+
 
 ENDstatement::ENDstatement(int line){
     this->linenumber=line;
@@ -369,6 +571,9 @@ int ENDstatement::Line(){
 }
 void ENDstatement::gettoken(const token *hd){
     if(hd->tokens!="\0")
-        throw "The END should only have END";
+     {
+        text_error error("The END should only have END.");
+        throw error;
+    }
     return;
 }
