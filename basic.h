@@ -5,6 +5,9 @@
 #include <QTextEdit>
 #include <QObject>
 #include <QTextBrowser>
+#include <QColor>
+#include <QPushButton>
+#include <QLabel>
 
 #include "program.h"
 class Textbox;
@@ -21,7 +24,10 @@ public:
     ~Basic();
 private:
     static const int BASIC_WINDOW_WIDTH = 1000;
-    static const int BASIC_WINDOW_HEIGHT = 800;
+    static const int BASIC_WINDOW_HEIGHT = 870;
+    QPushButton *clo;
+    QPushButton *min;
+    QLabel *title_basic;
     Textbox *box;
     Console *con;
     Editor  *edi;
@@ -35,11 +41,16 @@ class Textbox : public QTextBrowser
 public:
     explicit Textbox(QWidget *parent = nullptr);
     void write(QString str);
+    void StringToHtmlFilter(QString &str);
+    void StringToHtml(QString &str,QColor crl);
 signals:
 
 public slots:
     void receivesentence(QString str);
     void cleard();
+    void change_color(bool);
+private:
+    bool changecolor=true;
 };
 
 class Console : public QTextEdit

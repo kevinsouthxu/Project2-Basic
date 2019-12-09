@@ -4,6 +4,8 @@
 #include <QString>
 #include <QObject>
 #include <QWidget>
+#include <QStack>
+#include <QMap>
 
 #include "tokenizer.h"
 #include "evalstate.h"
@@ -20,8 +22,18 @@ private:
     };
     Listrec *head,*currentline,*rear;
     EvaluationContext *Eva;
+
+    int Current_Line_index;
+
+    bool CAN_CONTINUE_RUN;
+
+    bool Create_new_eva;
 public slots:
     void printtok(QString);
+    void get_line_index(int);
+    void get_input_signal(int);
+    void get_input_value(QString);
+    void error_situation();
 signals:
     void perror(QString) const;
     void print(QString) const;
@@ -31,11 +43,14 @@ public:
     ~ListBuffer();
 
     void writeToFile(const QString &filename) const;
+    void I_P_L(const QString &text);
     void clear();
     void showLines() const;
     void deleteLine(int line_idx);
     void insertLine(int line_idx, const QString &text);
     void runmode();
+
+    bool PAUSE;
 };
 
 class Editor:public QWidget
@@ -46,19 +61,23 @@ signals:
   void print(QString) const;
   void getlines();
   void flush();
+  void color(bool);
 
   void QUIT();
 private:
   ListBuffer *buffer;
 
-  void dispatchCmd(const QString &cmd);
+  void dispatchCmd( QString &cmd);
   void cmdwrite(const QString &filename);
   void cmddelete(int number);
   void cmdinsert(int number,const QString &content);
   void cmdshow();
   void cmdclear();
+  void cmdI_P_L(const QString &cmd);//INPUT PRINT LET
 
   QString line;
+
+  QStack<int> line_number;
 public:
   Editor();
   ~Editor();

@@ -32,6 +32,7 @@ SOURCES += \
         parser.cpp \
         program.cpp \
         statement.cpp \
+        text_error.cpp \
         tokenizer.cpp
 
 HEADERS += \
@@ -41,9 +42,12 @@ HEADERS += \
         parser.h \
         program.h \
         statement.h \
+        text_error.h \
         tokenizer.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+FORMS +=

@@ -2,6 +2,15 @@ This is a BASIC interpreter. Here's how the various commands are used:
 CLEAR: CLEAR all the statements you have written.
 RUN: RUN your BASIC program.
 QUIT: QUIT your BASIC interpreter.
+SAVE + name.txt：SAVE your BASIC program into a txt format,
+You will find it in "build-BasicInterpret..." folder.
 d line number：enter d and line number behind it to delete the line.
 Every time you type in a statement you want to run, 
 you should precede it with a line number indicating where you want it to run.
+Every statement should observe the format rule that:
+
+Linenumber COMMAND expression
+
+This Interpreter only support + - * / ** five operators
+
+If you receive a warning with LINENUMBER:0. It's a warning of your command.
